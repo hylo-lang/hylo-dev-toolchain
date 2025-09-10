@@ -1,58 +1,31 @@
-FROM swiftlang/swift:nightly-6.2-noble
+FROM swift:6.1.2
 
 ARG HYLO_LLVM_BUILD_TYPE=MinSizeRel
-ARG HYLO_LLVM_BUILD_RELEASE=20250617-222524
+ARG HYLO_LLVM_BUILD_RELEASE=20250910-063105
 ARG HYLO_LLVM_VERSION=20.1.6
 
 ENV HYLO_LLVM_DOWNLOAD_URL="https://github.com/hylo-lang/llvm-build/releases/download"
 
 # Install the dependencies for the LLVM build.
 # Note that we do cleanup in the same layer to save disk space.
-RUN apt-get update && \
+RUN wget -O - https://apt.kitware.com/kitware-archive.sh | bash && \
+    apt-get update && \
     apt-get install -y --no-install-recommends gnupg curl libzstd-dev libzstd1 lsb-release make \
-       ninja-build tar wget zstd software-properties-common ca-certificates gpg && \
+       ninja-build tar wget zstd software-properties-common ca-certificates gpg cmake && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf /tmp/* && \
     rm -rf /var/tmp/*
 
-# Add Kitware APT repository and install recent CMake
-RUN <<EOT bash -ex -o pipefail
-
-    # Download and run the Kitware archive script
-    wget -O - https://apt.kitware.com/kitware-archive.sh | bash
-    
-    # Install CMake from Kitware repository
-    apt-get install -y cmake
-    
-    # Clean up package cache and temporary files to reduce image size
-    apt-get clean
-    rm -rf /var/lib/apt/lists/*
-    rm -rf /tmp/*
-    rm -rf /var/tmp/*
-
-EOT
-
 # Get the LLVM builds for the host architecture
-RUN <<EOT bash -ex -o pipefail
+RUN file_prefix="llvm-${HYLO_LLVM_VERSION}-$(uname -m)-unknown-linux-gnu" && \
+    url_prefix="${HYLO_LLVM_DOWNLOAD_URL}/${HYLO_LLVM_BUILD_RELEASE}/$file_prefix" && \
+    download_url="${url_prefix}-${HYLO_LLVM_BUILD_TYPE}.tar.zst" && \
+    echo "Downloading LLVM from: ${download_url}" && \
+    curl --no-progress-meter -L "${download_url}" | tar -x --zstd -C /opt && \
+    ln -s "/opt/${file_prefix}-${HYLO_LLVM_BUILD_TYPE}" "/opt/llvm-${HYLO_LLVM_BUILD_TYPE}"
 
-    file_prefix="llvm-\${HYLO_LLVM_VERSION}-\$(uname -m)-unknown-linux-gnu"
-    url_prefix="\${HYLO_LLVM_DOWNLOAD_URL}/\${HYLO_LLVM_BUILD_RELEASE}/\$file_prefix"
 
-    # Install both Debug and MinSizeRel builds
-    for build_type in Debug MinSizeRel; do
-        curl --no-progress-meter -L "\${url_prefix}-\${build_type}.tar.zst" | tar -x --zstd -C /opt
-        ln -s /opt/\${file_prefix}-\${build_type} /opt/llvm-\${build_type}
-    done
-
-EOT
-
-# Make and install the llvm.pc file.
-ADD make-pkgconfig.sh /tmp
-RUN <<EOT bash -ex -o pipefail
-
-    export PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/bin:\$PATH"
-    /tmp/make-pkgconfig.sh /usr/local/lib/pkgconfig/llvm.pc > /dev/null
-    rm /tmp/make-pkgconfig.sh
-
-EOT
+# Install LLVM globally (add bin to PATH, and the folder containing llvm.pc to PKG_CONFIG_PATH).
+RUN export PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/bin:$PATH" && llvm-config --version
+RUN export PKG_CONFIG_PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/pkgconfig:$PKG_CONFIG_PATH" && pkg-config --exists llvm
