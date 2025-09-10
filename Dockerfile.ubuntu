@@ -20,7 +20,9 @@ RUN wget -O - https://apt.kitware.com/kitware-archive.sh | bash && \
 # Get the LLVM builds for the host architecture
 RUN file_prefix="llvm-\${HYLO_LLVM_VERSION}-\$(uname -m)-unknown-linux-gnu" && \
     url_prefix="\${HYLO_LLVM_DOWNLOAD_URL}/\${HYLO_LLVM_BUILD_RELEASE}/\$file_prefix" && \
-    curl --no-progress-meter -L "\${url_prefix}-\${HYLO_LLVM_BUILD_TYPE}.tar.zst" | tar -x --zstd -C /opt && \
+    download_url="\${url_prefix}-\${HYLO_LLVM_BUILD_TYPE}.tar.zst" && \
+    echo "Downloading LLVM from: \${download_url}" && \
+    curl --no-progress-meter -L "\${download_url}" | tar -x --zstd -C /opt && \
     ln -s /opt/\${file_prefix}-\${HYLO_LLVM_BUILD_TYPE} /opt/llvm-\${HYLO_LLVM_BUILD_TYPE}
 
 # Install LLVM globally (add bin to PATH, and the folder containing llvm.pc to PKG_CONFIG_PATH).
