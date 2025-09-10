@@ -8,12 +8,12 @@ ENV HYLO_LLVM_DOWNLOAD_URL="https://github.com/hylo-lang/llvm-build/releases/dow
 
 
 # Get the LLVM builds for the host architecture
-RUN file_prefix="llvm-\${HYLO_LLVM_VERSION}-\$(uname -m)-unknown-linux-gnu" && \
-    url_prefix="\${HYLO_LLVM_DOWNLOAD_URL}/\${HYLO_LLVM_BUILD_RELEASE}/\$file_prefix" && \
-    download_url="\${url_prefix}-\${HYLO_LLVM_BUILD_TYPE}.tar.zst" && \
+RUN file_prefix="llvm-${HYLO_LLVM_VERSION}-$(uname -m)-unknown-linux-gnu" && \
+    url_prefix="${HYLO_LLVM_DOWNLOAD_URL}/${HYLO_LLVM_BUILD_RELEASE}/$file_prefix" && \
+    download_url="${url_prefix}-${HYLO_LLVM_BUILD_TYPE}.tar.zst" && \
     echo "Downloading LLVM from: ${download_url}" && \
-    curl --no-progress-meter -L "\${download_url}" | tar -x --zstd -C /opt && \
-    ln -s /opt/\${file_prefix}-\${HYLO_LLVM_BUILD_TYPE} /opt/llvm-\${HYLO_LLVM_BUILD_TYPE}
+    curl --no-progress-meter -L "${download_url}" | tar -x --zstd -C /opt && \
+    ln -s "/opt/${file_prefix}-${HYLO_LLVM_BUILD_TYPE}" "/opt/llvm-${HYLO_LLVM_BUILD_TYPE}"
 
 
 # Install the dependencies for the LLVM build.
