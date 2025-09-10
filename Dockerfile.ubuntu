@@ -8,10 +8,10 @@ ENV HYLO_LLVM_DOWNLOAD_URL="https://github.com/hylo-lang/llvm-build/releases/dow
 
 # Install the dependencies for the LLVM build.
 # Note that we do cleanup in the same layer to save disk space.
-RUN wget -O - https://apt.kitware.com/kitware-archive.sh | bash && \
-    apt-get update && \
+RUN apt-get update && \
     apt-get install -y --no-install-recommends gnupg curl libzstd-dev libzstd1 lsb-release make \
-       ninja-build tar wget zstd software-properties-common ca-certificates gpg cmake && \
+       ninja-build tar wget zstd software-properties-common ca-certificates gpg && \
+       wget -O - https://apt.kitware.com/kitware-archive.sh | bash && apt-get install cmake && cmake --version && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf /tmp/* && \
