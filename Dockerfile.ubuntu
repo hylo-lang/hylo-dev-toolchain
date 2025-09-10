@@ -1,4 +1,4 @@
-FROM swift:6.1.2
+FROM swift:6.1.3-slim
 
 ARG HYLO_LLVM_BUILD_TYPE=MinSizeRel
 ARG HYLO_LLVM_BUILD_RELEASE=20250910-063105
@@ -11,7 +11,7 @@ ENV HYLO_LLVM_DOWNLOAD_URL="https://github.com/hylo-lang/llvm-build/releases/dow
 RUN wget -O - https://apt.kitware.com/kitware-archive.sh | bash && \
     apt-get update && \
     apt-get install -y --no-install-recommends gnupg curl libzstd-dev libzstd1 lsb-release make \
-       ninja-build tar wget zstd software-properties-common ca-certificates gpg cmake && \
+       ninja-build tar wget zstd software-properties-common ca-certificates gpg cmake pkg-config git && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     rm -rf /tmp/* && \
