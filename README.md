@@ -8,10 +8,10 @@ A containerized development environment for the Hylo compiler with automated CI/
 
 ```Dockerfile
 # Specific version (recommended, for build reproducability)
-FROM ghcr.io/tothambrus11/hylo-compiler-dev-env:v1.0.0
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v0.2.0
 
 # Latest stable release
-FROM ghcr.io/tothambrus11/hylo-compiler-dev-env:latest
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:latest
 ```
 
 ## CI/CD Pipeline
