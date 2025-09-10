@@ -6,16 +6,6 @@ ARG HYLO_LLVM_VERSION=20.1.6
 
 ENV HYLO_LLVM_DOWNLOAD_URL="https://github.com/hylo-lang/llvm-build/releases/download"
 
-
-# Get the LLVM builds for the host architecture
-RUN file_prefix="llvm-${HYLO_LLVM_VERSION}-$(uname -m)-unknown-linux-gnu" && \
-    url_prefix="${HYLO_LLVM_DOWNLOAD_URL}/${HYLO_LLVM_BUILD_RELEASE}/$file_prefix" && \
-    download_url="${url_prefix}-${HYLO_LLVM_BUILD_TYPE}.tar.zst" && \
-    echo "Downloading LLVM from: ${download_url}" && \
-    curl --no-progress-meter -L "${download_url}" | tar -x --zstd -C /opt && \
-    ln -s "/opt/${file_prefix}-${HYLO_LLVM_BUILD_TYPE}" "/opt/llvm-${HYLO_LLVM_BUILD_TYPE}"
-
-
 # Install the dependencies for the LLVM build.
 # Note that we do cleanup in the same layer to save disk space.
 RUN wget -O - https://apt.kitware.com/kitware-archive.sh | bash && \
@@ -27,7 +17,15 @@ RUN wget -O - https://apt.kitware.com/kitware-archive.sh | bash && \
     rm -rf /tmp/* && \
     rm -rf /var/tmp/*
 
+# Get the LLVM builds for the host architecture
+RUN file_prefix="llvm-${HYLO_LLVM_VERSION}-$(uname -m)-unknown-linux-gnu" && \
+    url_prefix="${HYLO_LLVM_DOWNLOAD_URL}/${HYLO_LLVM_BUILD_RELEASE}/$file_prefix" && \
+    download_url="${url_prefix}-${HYLO_LLVM_BUILD_TYPE}.tar.zst" && \
+    echo "Downloading LLVM from: ${download_url}" && \
+    curl --no-progress-meter -L "${download_url}" | tar -x --zstd -C /opt && \
+    ln -s "/opt/${file_prefix}-${HYLO_LLVM_BUILD_TYPE}" "/opt/llvm-${HYLO_LLVM_BUILD_TYPE}"
+
 
 # Install LLVM globally (add bin to PATH, and the folder containing llvm.pc to PKG_CONFIG_PATH).
-RUN export PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/bin:\$PATH" && llvm-config --version
-RUN export PKG_CONFIG_PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/pkgconfig:\$PKG_CONFIG_PATH" && pkg-config --exists llvm
+RUN export PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/bin:$PATH" && llvm-config --version
+RUN export PKG_CONFIG_PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/pkgconfig:$PKG_CONFIG_PATH" && pkg-config --exists llvm
