@@ -29,4 +29,5 @@ RUN file_prefix="llvm-${HYLO_LLVM_VERSION}-$(uname -m)-unknown-linux-gnu" && \
 # Install LLVM globally (add bin to PATH, and the folder containing llvm.pc to PKG_CONFIG_PATH).
 ENV PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/bin:${PATH}"
 ENV PKG_CONFIG_PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/pkgconfig:${PKG_CONFIG_PATH}"
+ENV LLVM_DIR="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/lib/cmake/llvm"
 RUN llvm-config --version && pkg-config --exists llvm
