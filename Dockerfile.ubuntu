@@ -1,11 +1,5 @@
 FROM swift:6.1.2
 
-ARG HYLO_LLVM_BUILD_TYPE=MinSizeRel
-ARG HYLO_LLVM_BUILD_RELEASE=20250910-063105
-ARG HYLO_LLVM_VERSION=20.1.6
-
-ENV HYLO_LLVM_DOWNLOAD_URL="https://github.com/hylo-lang/llvm-build/releases/download"
-
 # Install the dependencies for the LLVM build.
 # Note that we do cleanup in the same layer to save disk space.
 RUN apt-get update && \
@@ -17,6 +11,13 @@ RUN apt-get update && \
     rm -rf /tmp/* && \
     rm -rf /var/tmp/*
 
+# Add arguments here so that the previous layer doesn't need to be re-run when these change.
+ARG HYLO_LLVM_BUILD_TYPE=MinSizeRel
+ARG HYLO_LLVM_BUILD_RELEASE=20250910-063105
+ARG HYLO_LLVM_VERSION=20.1.6
+
+ENV HYLO_LLVM_DOWNLOAD_URL="https://github.com/hylo-lang/llvm-build/releases/download"
+
 # Get the LLVM builds for the host architecture
 RUN file_prefix="llvm-${HYLO_LLVM_VERSION}-$(uname -m)-unknown-linux-gnu" && \
     url_prefix="${HYLO_LLVM_DOWNLOAD_URL}/${HYLO_LLVM_BUILD_RELEASE}/$file_prefix" && \
@@ -25,7 +26,7 @@ RUN file_prefix="llvm-${HYLO_LLVM_VERSION}-$(uname -m)-unknown-linux-gnu" && \
     curl --no-progress-meter -L "${download_url}" | tar -x --zstd -C /opt && \
     ln -s "/opt/${file_prefix}-${HYLO_LLVM_BUILD_TYPE}" "/opt/llvm-${HYLO_LLVM_BUILD_TYPE}"
 
-
 # Install LLVM globally (add bin to PATH, and the folder containing llvm.pc to PKG_CONFIG_PATH).
-RUN export PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/bin:$PATH" && llvm-config --version
-RUN export PKG_CONFIG_PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/pkgconfig:$PKG_CONFIG_PATH" && pkg-config --exists llvm
+ENV PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/bin:${PATH}"
+ENV PKG_CONFIG_PATH="/opt/llvm-${HYLO_LLVM_BUILD_TYPE}/pkgconfig:${PKG_CONFIG_PATH}"
+RUN llvm-config --version && pkg-config --exists llvm
