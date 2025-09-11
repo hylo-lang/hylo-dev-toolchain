@@ -92,5 +92,9 @@ template: |
   ```
   docker pull ghcr.io/$OWNER/$REPOSITORY:v$RESOLVED_VERSION
   ```
+  Using it in a Dockerfile:
+  ```
+  FROM ghcr.io/$OWNER/$REPOSITORY:v$RESOLVED_VERSION
+  ```
 
   **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
