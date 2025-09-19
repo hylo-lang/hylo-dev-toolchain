@@ -15,14 +15,19 @@ By default, this image contains:
 
 ```Dockerfile
 # Specific version (recommended, for build reproducability)
-FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v0.2.0
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v0.1.5
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v0.1.5-minsizerel
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v0.1.5-debug
 
-# Latest stable release
+# Latest release
 FROM ghcr.io/hylo-lang/hylo-dev-toolchain:latest
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:latest-minsizerel
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:latest-debug
 ```
+The debug/minsizerel refers to the LLVM build version contained within the image.
 
 ### Optional Arguments
-- `HYLO_LLVM_BUILD_TYPE`: Can be `Debug`/`MinSizeRel` (default).
+- `HYLO_LLVM_BUILD_TYPE`: Can be `Debug`/`MinSizeRel` (latter is the default).
 - `HYLO_LLVM_BUILD_RELEASE`: Release tag from [llvm-build](https://github.com/hylo-lang/llvm-build/releases)
 - `HYLO_LLVM_VERSION`: LLVM version, which must match the version contained within the build specified by the release tag, such as `20.1.6`.
 
