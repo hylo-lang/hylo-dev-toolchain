@@ -35,8 +35,8 @@ jobs:
           build-args: |
             HYLO_LLVM_BUILD_TYPE=${{ matrix.build_type }}
           tags: |
-            ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}-${{ matrix.build_type == 'MinSizeRel' && 'minsizerel' || 'debug' }}
-            ghcr.io/${{ github.repository }}:latest-${{ matrix.build_type == 'MinSizeRel' && 'minsizerel' || 'debug' }}
+            ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}-${{ matrix.build_type }}
+            ghcr.io/${{ github.repository }}:latest-${{ matrix.build_type }}
             ${{ matrix.build_type == 'MinSizeRel' && format('ghcr.io/{0}:latest', github.repository) || '' }}
             ${{ matrix.build_type == 'MinSizeRel' && format('ghcr.io/{0}:{1}', github.repository, github.event.release.tag_name) || '' }}
 
