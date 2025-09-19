@@ -8,6 +8,9 @@ on:
 jobs:
   build_and_push_release:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build_type: [MinSizeRel, Debug]
     permissions:
       contents: read
       packages: write
@@ -28,9 +31,12 @@ jobs:
           context: .
           file: ./Dockerfile.ubuntu
           push: true
+          build-args: |
+            HYLO_LLVM_BUILD_TYPE=${{ matrix.build_type }}
           tags: |
-            ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}-${{ matrix.build_type == 'MinSizeRel' && 'minsizerel' || 'debug' }}
+            ghcr.io/${{ github.repository }}:latest-${{ matrix.build_type == 'MinSizeRel' && 'minsizerel' || 'debug' }}
+            ${{ matrix.build_type == 'MinSizeRel' && format('ghcr.io/{0}:latest', github.repository) || '' }}
 
       - name: Clean up draft image
         uses: actions/github-script@v7
