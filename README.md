@@ -3,7 +3,7 @@
 A containerized development environment for the Hylo compiler with automated CI/CD pipeline.
 
 By default, this image contains:
-- Swift 6.1.2
+- Swift 6.2.0
 - LLVM 20.1.6 MinSizeRel with assertions enabled (see [Hylo build](https://github.com/hylo-lang/llvm-build) to look at which components are installed). You can 
 - [pkg-config](https://linux.die.net/man/1/pkg-config)
 - LLVM's `bin/` folder on `PATH`
