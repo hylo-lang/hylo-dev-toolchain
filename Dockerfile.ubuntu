@@ -13,7 +13,7 @@ RUN apt-get update && \
 
 # Add arguments here so that the previous layer doesn't need to be re-run when these change.
 ARG HYLO_LLVM_BUILD_TYPE=MinSizeRel
-ARG HYLO_LLVM_BUILD_RELEASE=20250910-063105
+ARG HYLO_LLVM_BUILD_RELEASE=20251214-185311
 ARG HYLO_LLVM_VERSION=20.1.6
 
 ENV HYLO_LLVM_DOWNLOAD_URL="https://github.com/hylo-lang/llvm-build/releases/download"
