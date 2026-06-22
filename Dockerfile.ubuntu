@@ -1,4 +1,4 @@
-FROM swift:6.2.4
+FROM swift:6.3.2
 
 # Install the dependencies for the LLVM build.
 # Note that we do cleanup in the same layer to save disk space.
