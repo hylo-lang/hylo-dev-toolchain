@@ -4,7 +4,7 @@ A containerized development environment for the Hylo compiler with automated CI/
 
 By default, this image contains:
 - Swift 6.3.2
-- LLVM 20.1.6 MinSizeRel with assertions enabled (see [Hylo build](https://github.com/hylo-lang/llvm-build) to look at which components are installed). You can 
+- LLVM 23.1.0 MinSizeRel with assertions enabled (see [Hylo build](https://github.com/hylo-lang/llvm-build) to look at which components are installed). You can 
 - [pkg-config](https://linux.die.net/man/1/pkg-config)
 - LLVM's `bin/` folder on `PATH`
 - LLVM's pkg-config file on `PKG_CONFIG_PATH` - package identifier: `llvm`
@@ -29,7 +29,7 @@ The Debug/MinSizeRel refers to the LLVM build version contained within the image
 ### Optional Arguments
 - `HYLO_LLVM_BUILD_TYPE`: Can be `Debug`/`MinSizeRel` (latter is the default).
 - `HYLO_LLVM_BUILD_RELEASE`: Release tag from [llvm-build](https://github.com/hylo-lang/llvm-build/releases)
-- `HYLO_LLVM_VERSION`: LLVM version, which must match the version contained within the build specified by the release tag, such as `20.1.6`.
+- `HYLO_LLVM_VERSION`: LLVM version, which must match the version contained within the build specified by the release tag, such as `23.1.0`.
 
 ## CI/CD Pipeline
 
