@@ -15,9 +15,9 @@ By default, this image contains:
 
 ```Dockerfile
 # Specific version (recommended, for build reproducability)
-FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v0.1.5
-FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v0.1.5-MinSizeRel
-FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v0.1.5-Debug
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v2.0.0
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v2.0.0-MinSizeRel
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v2.0.0-Debug
 
 # Latest release
 FROM ghcr.io/hylo-lang/hylo-dev-toolchain:latest
