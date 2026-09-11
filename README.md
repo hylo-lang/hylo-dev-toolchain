@@ -3,7 +3,7 @@
 A containerized development environment for the Hylo compiler with automated CI/CD pipeline.
 
 By default, this image contains:
-- Swift 6.3.2
+- Swift 6.3.3
 - LLVM 23.1.0 MinSizeRel with assertions enabled (see [Hylo build](https://github.com/hylo-lang/llvm-build) to look at which components are installed). You can 
 - [pkg-config](https://linux.die.net/man/1/pkg-config)
 - LLVM's `bin/` folder on `PATH`
@@ -15,9 +15,9 @@ By default, this image contains:
 
 ```Dockerfile
 # Specific version (recommended, for build reproducability)
-FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v0.1.5
-FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v0.1.5-MinSizeRel
-FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v0.1.5-Debug
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v2.0.0
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v2.0.0-MinSizeRel
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v2.0.0-Debug
 
 # Latest release
 FROM ghcr.io/hylo-lang/hylo-dev-toolchain:latest

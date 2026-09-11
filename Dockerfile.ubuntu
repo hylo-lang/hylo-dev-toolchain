@@ -1,4 +1,4 @@
-FROM swift:6.3.2
+FROM swift:6.3.3
 
 # Install the dependencies for the LLVM build.
 # Note that we do cleanup in the same layer to save disk space.
@@ -13,7 +13,7 @@ RUN apt-get update && \
 
 # Add arguments here so that the previous layer doesn't need to be re-run when these change.
 ARG HYLO_LLVM_BUILD_TYPE=MinSizeRel
-ARG HYLO_LLVM_BUILD_RELEASE=20260905-150549
+ARG HYLO_LLVM_BUILD_RELEASE=20260905-220739
 ARG HYLO_LLVM_VERSION=23.1.0
 
 ENV HYLO_LLVM_DOWNLOAD_URL="https://github.com/hylo-lang/llvm-build/releases/download"
