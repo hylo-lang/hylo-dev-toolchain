@@ -1,0 +1,274 @@
+name: CI
+
+# The workflow responsible for both CI and CD:
+#   * pull_request        -> build every image variant and verify it. Nothing is deployed.
+#   * push of a `v*` tag  -> same build + verification, then push the images and publish
+#                            the release, but only once every variant has passed.
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+  GH_REPO: ${{ github.repository }}
+  TAG: ${{ github.ref_name }}
+  # Any tag carrying a suffix (v1.2.3-beta.1) is a prerelease.
+  PRERELEASE: ${{ github.ref_type == 'tag' && contains(github.ref_name, '-') }}
+
+  # The integration test payload.
+  SWIFTY_LLVM_REPO: hylo-lang/Swifty-LLVM
+  SWIFTY_LLVM_REF: 0cab6b5b628a0485226b899fa3a0abc37d603bb4 # main, 2026-09-11
+
+jobs:
+
+  # ----------------------------------------------------------------------------------
+  # Tag runs only: open the draft release up front so an in-flight release is visible.
+  # ----------------------------------------------------------------------------------
+  draft:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Validate tag name
+        run: |
+          set -euo pipefail
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '$TAG' is not vX.Y.Z or vX.Y.Z-*."
+            exit 1
+          fi
+
+      - name: Create draft release
+        run: |
+          set -euo pipefail
+
+          prerelease=()
+          if [ "$PRERELEASE" = true ]; then
+            prerelease=(--prerelease)
+          fi
+
+          # Re-running the workflow must not fail on an already-created release.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, leaving it as is."
+          else
+            gh release create "$TAG" \
+              --draft \
+              --title "$TAG" \
+              --generate-notes \
+              "${prerelease[@]}"
+          fi
+
+  # ----------------------------------------------------------------------------------
+  # Build each image variant natively and test that it can build and test Swifty-LLVM.
+  # ----------------------------------------------------------------------------------
+  verify:
+    needs: [draft]
+    # On a pull request `draft` is skipped, which must not skip this job; on a tag run
+    # a rejected tag name must. `!cancelled()` replaces the default success check.
+    if: ${{ !cancelled() && needs.draft.result != 'failure' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        build_type: [MinSizeRel, Debug]
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+          # Exercise the image with the build configuration it is meant for.
+          - build_type: MinSizeRel
+            spm_config: release
+          - build_type: Debug
+            spm_config: debug
+
+    name: ${{ matrix.build_type }}/${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    # Without this a hung test run would sit on a runner for the full 6h default.
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Before the image build, so a bad ref fails in seconds rather than after it.
+      - name: Check out ${{ env.SWIFTY_LLVM_REPO }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.SWIFTY_LLVM_REPO }}
+          ref: ${{ env.SWIFTY_LLVM_REF }}
+          submodules: true
+          path: integration
+          persist-credentials: false # Don't leave GITHUB_TOKEN in .git/config
+
+      - name: Build image
+        run: |
+          set -euxo pipefail
+          df -h /
+          # Always a clean build: the runner is fresh and no layer cache is configured,
+          # so an image is never carried over from an earlier run.
+          docker build \
+            --build-arg HYLO_LLVM_BUILD_TYPE=${{ matrix.build_type }} \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+            -f Dockerfile.ubuntu \
+            -t toolchain:local \
+            .
+          df -h /
+
+      - name: Build and test ${{ env.SWIFTY_LLVM_REPO }} in the image
+        id: verify
+        continue-on-error: ${{ env.PRERELEASE == 'true' }} # Verification must not block a pre-release.
+        run: |
+          set -euxo pipefail
+          docker run --rm \
+            -v "${{ github.workspace }}/integration:/work" \
+            -w /work \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp \
+            toolchain:local \
+            bash -euxo pipefail -c '
+              # PKG_CONFIG_PATH from the image is what lets SPM resolve the `llvm` module.
+              swift test -c ${{ matrix.spm_config }}
+
+              # LLVM_DIR is set by the image; check it really points somewhere usable.
+              test -f "$LLVM_DIR/LLVMConfig.cmake" || {
+                echo "LLVMConfig.cmake not found in $LLVM_DIR. Contents:"; ls "$LLVM_DIR"; exit 1;
+              }
+            '
+
+      - name: Record verification result
+        run: |
+          set -euo pipefail
+          printf '%s/%s: %s\n' \
+            '${{ matrix.build_type }}' '${{ matrix.arch }}' '${{ steps.verify.outcome }}' \
+            | tee result.txt >> "$GITHUB_STEP_SUMMARY"
+
+      # Everything below is tag-only. Each image is pushed only after its own
+      # verification; the tags people actually consume are created in `finalize`,
+      # once every variant has passed.
+      - name: Log in to ghcr.io
+        if: github.ref_type == 'tag'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push per-architecture image
+        if: github.ref_type == 'tag'
+        run: |
+          set -euxo pipefail
+          ref="$IMAGE:$TAG-${{ matrix.build_type }}-${{ matrix.arch }}"
+          docker tag toolchain:local "$ref"
+          docker push "$ref"
+
+          # Record the digest this run produced; `finalize` composes the manifests from
+          # these rather than from the tags (see there).
+          #
+          # Ask the registry rather than reading .RepoDigests: a local image accumulates
+          # an entry per repository it is tagged into, so indexing that list can return
+          # the `toolchain:local` digest instead of the pushed one. This also confirms
+          # the push actually landed.
+          docker buildx imagetools inspect "$ref" --format '{{.Manifest.Digest}}' > digest.txt
+          cat digest.txt
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: github.ref_type == 'tag'
+        with:
+          name: verify-${{ matrix.build_type }}-${{ matrix.arch }}
+          path: |
+            result.txt
+            digest.txt
+          overwrite: true # Overwrite when re-running the job.
+
+  # --------------------------------------------------------------------------------
+  # Tag runs only: combine the per-architecture images into the real tags and publish.
+  # Reached only when every `verify` leg succeeded.
+  # --------------------------------------------------------------------------------
+  finalize:
+    if: github.ref_type == 'tag'
+    needs: [draft, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: verify-*
+          path: results
+
+      - name: Assemble multi-architecture tags
+        run: |
+          set -euxo pipefail
+
+          # The loops below must name the same variants as the `verify` matrix.
+          for build_type in MinSizeRel Debug; do
+            tags=(-t "$IMAGE:$TAG-$build_type")
+            # `latest` must keep pointing at the newest stable release.
+            if [ "$PRERELEASE" = false ]; then tags+=(-t "$IMAGE:latest-$build_type"); fi
+
+            # MinSizeRel is the default, so it also owns the unsuffixed tags.
+            if [ "$build_type" = MinSizeRel ]; then
+              tags+=(-t "$IMAGE:$TAG")
+              if [ "$PRERELEASE" = false ]; then tags+=(-t "$IMAGE:latest"); fi
+            fi
+
+            # Compose from the digests this run recorded, so a stale image sitting
+            # behind one of the per-architecture tags cannot be republished.
+            sources=()
+            for arch in amd64 arm64; do
+              sources+=("$IMAGE@$(cat "results/verify-$build_type-$arch/digest.txt")")
+            done
+
+            docker buildx imagetools create "${tags[@]}" "${sources[@]}"
+          done
+
+      - name: Publish release
+        run: |
+          set -euo pipefail
+
+          cat results/*/result.txt | tee -a "$GITHUB_STEP_SUMMARY"
+
+          # Verification is non-blocking for prereleases, so a prerelease can reach this
+          # point with failures. Say so on the release rather than implying it passed.
+          failed=$(grep -h 'failure' results/*/result.txt || true)
+          gh release view "$TAG" --json body -q .body > body.md
+
+          # Re-running this job must not stack up a second copy of the warning.
+          notes=()
+          if [ -n "$failed" ] && ! grep -q '\[!WARNING\]' body.md; then
+            {
+              echo '> [!WARNING]'
+              echo '> Integration verification failed for:'
+              echo '>'
+              echo "$failed" | sed 's/^/> - /'
+              echo
+            } > notes.md
+            cat body.md >> notes.md
+            notes=(--notes-file notes.md)
+          fi
+
+          gh release edit "$TAG" --draft=false "${notes[@]}"
