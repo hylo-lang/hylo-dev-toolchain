@@ -12,15 +12,13 @@ By default, this image contains:
 - LLVM's pkg-config file on `PKG_CONFIG_PATH` (package identifier: `llvm`)
 - `LLVM_DIR` pointing at LLVM's CMake package directory
 
-## Supported platforms
-
 ## Quick Start
 
 ```Dockerfile
 # Specific version (recommended, for build reproducibility)
-FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v3.0.0
-FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v3.0.0-MinSizeRel
-FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v3.0.0-Debug
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v3.1.0
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v3.1.0-MinSizeRel
+FROM ghcr.io/hylo-lang/hylo-dev-toolchain:v3.1.0-Debug
 
 # Latest stable release
 FROM ghcr.io/hylo-lang/hylo-dev-toolchain:latest
@@ -29,6 +27,10 @@ FROM ghcr.io/hylo-lang/hylo-dev-toolchain:latest-Debug
 ```
 
 `Debug`/`MinSizeRel` refers to the LLVM build contained in the image. The unsuffixed tags are `MinSizeRel`.
+
+
+## Supported platforms
+The image is multi-architecture, supporting `arm64` and `amd64`.
 
 ### Available tags
 
